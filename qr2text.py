@@ -11,7 +11,7 @@ alphabet = [' ', '▄', '▀', '█']
 def make_pixels_bw(img_pixels, width, height):
     for y in range(height):
         for x in range(width):
-            img_pixels[x, y] = BLACK if img_pixels[x, y] < 128 else WHITE
+            img_pixels[x, y] = BLACK if img_pixels[x, y] < (WHITE - BLACK + 1 ) / 2 else WHITE
     return img_pixels
 
 def detect_qr_borders(img_pixels, width, height):
@@ -19,26 +19,17 @@ def detect_qr_borders(img_pixels, width, height):
     right = -1
     upper = height
     lower = -1
-    found = False
     for y in range(height):
         for x in range(width):
             if img_pixels[x, y] == BLACK:
-                left = x
-                upper = y
-                found = True
-                break
-        if found:
-            break
-    found = False
-    for y in range(height - 1, -1, -1):
-        for x in range(width - 1, -1, -1):
-            if img_pixels[x, y] == BLACK:
-                right = x
-                lower = y
-                found = True
-                break
-        if found:
-            break
+                if left > x:
+                    left = x
+                if upper > y:
+                    upper = y
+                if right < x:
+                    right = x
+                if lower < y:
+                    lower = y
     return left, upper, right + 1, lower + 1
 
 def detect_qr_scale(img_pixels, width):
@@ -55,14 +46,16 @@ def get_normalized_image_pixels(image_name):
     width, height = img.size
 
     pixels = make_pixels_bw(pixels, width, height)
+
     img = img.crop(detect_qr_borders(pixels, width, height))
-    
     width, height = img.size
     pixels = img.load()
-
     scale = detect_qr_scale(pixels, width)
 
-    normalized = [[WHITE for x in range(width // scale)] for y in range(height // scale)]
+    normalized_width = round(width / scale)
+    normalized_height = round(height / scale)
+
+    normalized = [[WHITE for y in range(normalized_height)] for x in range(normalized_width)]
     
     for y in range(0, height, scale):
         for x in range(0, width, scale):
@@ -92,7 +85,7 @@ def get_symbol(color_a, color_b=None, inverted=False):
     symbol = alphabet[symbol_number if not inverted else -symbol_number - 1]
     return symbol
 
-def parse_text_from_pixels(img_pixels):
+def parse_text_from_pixels(img_pixels, inverted):
     width = len(pixels)
     height = len(pixels[0])
     text = ''
@@ -129,9 +122,10 @@ input_file = arguments.input_file
 inverted = arguments.inverted
 output_file = arguments.outputfile
 
-scale = 1
 try:
-    scale = int(arguments.scale)
+    scale = (int(arguments.scale) 
+            if not arguments.scale == None 
+            else 1)
     if scale < 1:
         raise ValueError
 except Exception:
@@ -143,7 +137,7 @@ pixels = get_normalized_image_pixels(input_file)
 if scale > 1:
     pixels = get_upscaled_image_pixels(pixels, scale)
 
-text = parse_text_from_pixels(pixels)
+text = parse_text_from_pixels(pixels, inverted)
 
 if output_file == None:
     print(text)
