@@ -4,14 +4,14 @@ from PIL import Image
 
 BLACK = 0
 WHITE = 255
-COLOR_BORDER = 128
+COLOR_BORDER = (WHITE - BLACK + 1 ) / 2
 inverted = False
 alphabet = [' ', '▄', '▀', '█']
 
 def make_pixels_bw(img_pixels, width, height):
     for y in range(height):
         for x in range(width):
-            img_pixels[x, y] = BLACK if img_pixels[x, y] < (WHITE - BLACK + 1 ) / 2 else WHITE
+            img_pixels[x, y] = BLACK if img_pixels[x, y] < COLOR_BORDER else WHITE
     return img_pixels
 
 def detect_qr_borders(img_pixels, width, height):
